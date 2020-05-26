@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/gocolly/colly/v2"
 )
 
@@ -8,13 +10,15 @@ type grabber struct {
 	id     string
 	uri    string
 	domain string
+	auth   bool
 	c      *colly.Collector
-	t      chan Todo
+	t      chan todo
 }
 
 // Todo is an Interface for all the things that need to be done and can
-type Todo interface {
+type todo interface {
 	URL() string
+	Name() (string, map[string]string)
 	OnHTML() (h HTMLHandler)
 	OnResponse(*grabber, *colly.Response)
 	OnScraped(*grabber, *colly.Response)
@@ -27,10 +31,11 @@ type HTMLHandler map[string]func(*grabber, *colly.HTMLElement)
 // ResponseHandler is a function to be called to handle a response
 type ResponseHandler func(*grabber, colly.Response)
 
-func newGrabber(domain string) (g *grabber) {
-	g.domain = domain
-	g.t = make(chan Todo, 100)
-	return
+func newGrabber(domain string) *grabber {
+	return &grabber{
+		domain: domain,
+		t:      make(chan todo, 100),
+	}
 }
 
 func (g *grabber) Authenticate(username, password string) {
@@ -63,11 +68,16 @@ func (g *grabber) Authenticate(username, password string) {
 	)
 }
 
-func (g *grabber) AddTodo(todo Todo) {
-	g.t <- todo
+func (g *grabber) AddTodo(t todo) {
+	typename, parameter := t.Name()
+	log.Printf("Queueing %s to todo [%+v]", typename, parameter)
+	g.t <- t
 }
 
 func (g *grabber) Run() {
+	if !g.auth {
+		panic("Not authenticated yet!") // TODO
+	}
 	active := true
 	for active {
 		select {
@@ -79,7 +89,7 @@ func (g *grabber) Run() {
 	}
 }
 
-func (g *grabber) do(t Todo) {
+func (g *grabber) do(t todo) {
 	c := g.c.Clone()
 	for s, h := range t.OnHTML() {
 		c.OnHTML(s, func(e *colly.HTMLElement) { h(g, e) })
@@ -87,6 +97,8 @@ func (g *grabber) do(t Todo) {
 	c.OnResponse(func(r *colly.Response) { t.OnResponse(g, r) })
 	c.OnScraped(func(r *colly.Response) { t.OnResponse(g, r) })
 	p := t.Post()
+	typename, parameter := t.Name()
+	log.Printf("Running %s to todo [%+v]", typename, parameter)
 	if len(p) > 0 {
 		c.Post(g.domain+t.URL(), p)
 	} else {

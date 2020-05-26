@@ -8,7 +8,8 @@ import (
 
 func main() {
 	grabber := newGrabber("https://bib-jena.genios.de")
-	grabber.AddTodo(newToCount("OTZ", time.Now()))
+	grabber.Authenticate("L0075062", "14092010")
+	grabber.AddTodo(newTOC("OTZ", time.Now(), 10))
 	grabber.Run()
 }
 

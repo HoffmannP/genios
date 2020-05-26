@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -14,10 +15,17 @@ type toCount struct {
 	date time.Time
 }
 
-func newToCount(name string, date time.Time) (c *toCount) {
-	c.id = name
-	c.date = date
-	return
+func newToCount(name string, date time.Time) *toCount {
+	return &toCount{
+		generic: generic{
+			id: name,
+		},
+		date: date,
+	}
+}
+
+func (c *toCount) Name() (string, map[string]string) {
+	return reflect.TypeOf(c).Name(), map[string]string{"id": c.id, "date": c.date.Format("02.01.2006")}
 }
 
 func (c *toCount) URL() string {

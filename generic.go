@@ -1,9 +1,17 @@
 package main
 
-import "github.com/gocolly/colly/v2"
+import (
+	"reflect"
+
+	"github.com/gocolly/colly/v2"
+)
 
 type generic struct {
 	id string
+}
+
+func (x *generic) Name() (string, map[string]string) {
+	return reflect.TypeOf(x).Name(), map[string]string{"id": x.id}
 }
 
 func (x *generic) URL() string {

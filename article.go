@@ -17,10 +17,13 @@ type article struct {
 	page    int
 }
 
-func newArticle(id string) (a *article) {
-	a.id = id
-	a.images = make([]string, 1)
-	return
+func newArticle(id string) *article {
+	return &article{
+		generic: generic{
+			id: id,
+		},
+		images: make([]string, 1),
+	}
 }
 
 func (a *article) URL() string {

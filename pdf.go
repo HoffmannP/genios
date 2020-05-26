@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"reflect"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -12,9 +13,16 @@ type pdf struct {
 }
 
 func newPdf(id, parentID string) (p *pdf) {
-	p.id = id
-	p.parentID = parentID
-	return
+	return &pdf{
+		generic: generic{
+			id: id,
+		},
+		parentID: parentID,
+	}
+}
+
+func (p *pdf) Name() (string, map[string]string) {
+	return reflect.TypeOf(p).Name(), map[string]string{"id": p.id, "parentId": p.parentID}
 }
 
 func (p *pdf) URL() string {
