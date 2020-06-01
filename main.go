@@ -1,14 +1,13 @@
 package main
 
-import (
-	"time"
-)
+import "time"
 
 // const location = "/usr/local/share/wiso"
 
 func main() {
 	grabber := newGrabber("https://bib-jena.genios.de")
-	grabber.Authenticate("L0075062", "14092010")
+	// grabber.Authenticate("L0075062", "14092010")
+	grabber.Hijack("genios.openid.identifier", "uR60502W.221976.bib-jena")
 	grabber.AddTodo(newTOC("OTZ", time.Now(), 10))
 	grabber.Run()
 }

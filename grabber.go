@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -33,23 +34,41 @@ type ResponseHandler func(*grabber, colly.Response)
 
 func newGrabber(domain string) *grabber {
 	return &grabber{
+		c:      colly.NewCollector(),
 		domain: domain,
 		t:      make(chan todo, 100),
 	}
 }
 
+func (g *grabber) PreAuthenticate() (s string) {
+	g.c.OnHTML(
+		"#layer_overlay + script + script",
+		func(script *colly.HTMLElement) {
+			s = script.Text[3847 : 3847+720]
+		},
+	)
+	g.c.Visit(g.domain)
+	return
+}
+
+func (g *grabber) Hijack(name, value string) {
+	c := []*http.Cookie{
+		{
+			Name:   name,
+			Value:  value,
+			Path:   "/",
+			Domain: g.domain,
+		},
+	}
+	g.c.SetCookies(g.domain, c)
+}
+
 func (g *grabber) Authenticate(username, password string) {
-	g.c = colly.NewCollector()
-	state := make(chan string)
-	go func() {
-		g.c.OnHTML(
-			"#layer_overlay + script + script",
-			func(script *colly.HTMLElement) {
-				state <- script.Text[3847 : 3847+720]
-			},
-		)
-		g.c.Visit(g.domain)
-	}()
+	state := g.PreAuthenticate()
+
+	g.c.OnResponse(func(r *colly.Response) {
+		log.Println(g.c.Cookies(g.domain))
+	})
 
 	g.c.Post(
 		g.domain+"/stream/downloadConsole",
@@ -60,10 +79,10 @@ func (g *grabber) Authenticate(username, password string) {
 			"bibLoginLayer.terms":    "1",
 			"bibLoginLayer.gdpr_cb":  "1",
 			"bibLoginLayer.gdpr":     "1",
+			"eventHandler":           "loginClicked",
 			"EVT.srcId":              "bibLoginLayer_c0",
 			"EVT.scrollTop":          "0",
-			"eventHandler":           "loginClicked",
-			"state":                  <-state,
+			"state":                  state,
 		},
 	)
 }
